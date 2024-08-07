@@ -12,7 +12,7 @@ TO_DETECT = ['person', 'laptop', 'cell phone', 'book', 'tv']
 FONT = cv2.FONT_HERSHEY_PLAIN
 ALERT_THRESHOLD=10
 Y_POSITION_1 = 20
-Y_POSITION_2 = 20
+Y_POSITION_2 = 60
 ALERT_POSITION = (120, 190)
 
 def get_objects_count(frame):
