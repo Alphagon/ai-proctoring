@@ -118,8 +118,9 @@ while True:
                     face = faces[0]
                 else:
                     face_detection_frames = face_detection_online(faces, face_detection_frames, frame_count, fps, report, debug=DEBUG)
-                    horizontalAppendedImg = np.hstack((frame3,report))
-                    cv2.imshow("Proctoring_Window", horizontalAppendedImg)
+                    if DEBUG:
+                        horizontalAppendedImg = np.hstack((frame3,report))
+                        cv2.imshow("Proctoring_Window", horizontalAppendedImg)
                     continue
                 
                 # Display Detected Face
@@ -147,9 +148,9 @@ while True:
                 eye_tracking_frames = eye_tracker(frame2, facial_landmarks, eye_tracking_frames, headpose_condition, frame_count, fps, report, debug=DEBUG)
             else:
                 flag = True
-
-            horizontalAppendedImg = np.hstack((frame3,report))
-            cv2.imshow("Proctoring_Window", horizontalAppendedImg)
+            if DEBUG:
+                horizontalAppendedImg = np.hstack((frame3,report))
+                cv2.imshow("Proctoring_Window", horizontalAppendedImg)
 
         # except Exception as e:
         #     print(e) 
@@ -157,8 +158,9 @@ while True:
         #     report = np.zeros((frame3.shape[0],frame3.shape[1], 3), np.uint8)
 
         #     #final display frame
-        #     horizontalAppendedImg = np.hstack((frame3,report))
-        #     cv2.imshow("Proctoring_Window", horizontalAppendedImg)
+        #     if DEBUG:
+        #         horizontalAppendedImg = np.hstack((frame3,report))
+        #         cv2.imshow("Proctoring_Window", horizontalAppendedImg)
             
 
     # Display the resulting image
