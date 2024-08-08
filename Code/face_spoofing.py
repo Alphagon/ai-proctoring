@@ -18,8 +18,6 @@ def calc_hist(img):
         histogram[j] = histr
     return np.array(histogram)
 
-
-
 def face_spoof(img, face):
     x = face[0]*4
     y = face[1]*4
@@ -44,8 +42,7 @@ def face_spoof(img, face):
     prob = prediction[0][1]
 
     measures[count % sample_number] = prob
-    
     #cv2.rectangle(img, (x, y), (x1, y1), (255, 0, 0), 2)
-    point = (x, y-5)
+    # point = (x, y-5)
 
     return measures

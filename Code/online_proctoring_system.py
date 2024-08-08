@@ -14,10 +14,10 @@ from landmark_models import *
 from face_spoofing import *
 from headpose_estimation import *
 from face_detection import get_face_detector, find_faces
-from custom_detection import get_objects_count, get_objects_count_exception,\
-     people_detection, banned_object_detection, face_detection_online, \
-     comparing_faces, face_verification, get_facial_landmarks, \
-     head_pose_detection, eye_tracker
+from custom_detection import (get_objects_count, get_objects_count_exception,
+                              people_detection, banned_object_detection, face_detection_online, 
+                              comparing_faces, face_verification, get_facial_landmarks, 
+                              head_pose_detection, eye_tracker)
 ################################################ Setup  ######################################################
 
 # Attendee Face Encodings
@@ -46,6 +46,8 @@ predictor = dlib.shape_predictor("models/shape_predictor_68_face_landmarks.dat")
 video_path = '/home/yravi/Videos/Webcam/2024-08-06-125132.webm'
 video_capture = cv2.VideoCapture(video_path)
 # video_capture = cv2.VideoCapture(0)
+fps = video_capture.get(cv2.CAP_PROP_FPS)
+frame_count = 0
 video_width = int(video_capture.get(cv2.CAP_PROP_FRAME_WIDTH))
 video_height = int(video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
 aspect_ratio = video_width / video_height
@@ -73,6 +75,7 @@ while True:
 
     # Grabbing a frame of video
     ret, frame = video_capture.read()
+    frame_count += 1
 
     if not ret:
         print("End of video")

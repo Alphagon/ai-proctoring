@@ -13,16 +13,12 @@ import math
 
 
 # # Load Model
-
-
 def load_hp_model(oModelPath):
     oHpModel = load_model(oModelPath)
     return oHpModel
 
 
 # # Headpose Display Fuction
-
-
 # Calculates Rotation Matrix given euler angles.
 def eulerAnglesToRotationMatrix(theta) :
     R_x = np.identity(3)
@@ -116,7 +112,6 @@ def headpose_inference(oModel,oImage,face):
     oImage = cv2.cvtColor(oImage, cv2.COLOR_BGR2RGB)
     #crop face region
     crop = oImage[oBboxExpanded[1]:oBboxExpanded[3], oBboxExpanded[0]:oBboxExpanded[2]]
-    #print(crop.shape)
     #resize crop
     crop = cv2.resize(crop, (100,100))
     crop = np.reshape(crop,(-1,100,100,3))

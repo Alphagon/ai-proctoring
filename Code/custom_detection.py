@@ -66,9 +66,6 @@ def face_detection_online(faces, no_of_frames, report, debug=False):
     no_of_frames = alert(condition, no_of_frames)
 
     if debug:
-        
-        alert_position = (120,190)
-
         # Display # For debugging
         cv2.putText(report, f"Number of face detected: {str(len(faces))}", (1, Y_POSITION_2), FONT, 1.1, (0, 255, 0), 2)
 

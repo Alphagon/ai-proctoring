@@ -1,16 +1,7 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Jul 29 17:52:00 2020
-
-@author: hp
-"""
-
 import cv2
 import numpy as np
 
-def get_face_detector(modelFile=None,
-                      configFile=None,
-                      quantized=False):
+def get_face_detector(modelFile=None, configFile=None, quantized=False):
     """
     Get the face detection caffe model of OpenCV's DNN module
     
@@ -92,4 +83,3 @@ def draw_faces(img, faces):
     """
     for x, y, x1, y1 in faces:
         cv2.rectangle(img, (x, y), (x1, y1), (0, 0, 255), 3)
-        
