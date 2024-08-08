@@ -66,7 +66,9 @@ def yoloV3Detect(img,scFactor=1/255,nrMean=(0,0,0),RBSwap=True,scoreThres=0.7,nm
                               scores=confidences, 
                               score_threshold=scoreThres, 
                               nms_threshold=nmsThres)
-  
-  fboxes = [boxes[j] for j in selected[:,0]]
+  if len(selected) == 0:
+    return [], []
+
+  fboxes = [boxes[int(j)] for j in selected[:,0]]
   fclasses = [str(classes[classId[j]]) for j in selected[:,0]] 
   return [fboxes,fclasses]

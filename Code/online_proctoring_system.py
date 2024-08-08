@@ -79,6 +79,8 @@ while True:
     ret, frame = video_capture.read()
     frame_count += 1
 
+    if frame_count < 3050: continue
+
     if not ret:
         print("End of video")
         break
@@ -93,14 +95,15 @@ while True:
 
     # Functionalities
     if process_this_frame:
+            print(frame_count)
         # try:
             ##### Object Detection #####
-            try:
-                count_items = get_objects_count(small_frame)
+            # try:
+            count_items = get_objects_count(small_frame)
                 # print(f'{count_items}')
-            except Exception as error:
-                count_items = get_objects_count_exception()
-                print(error)
+            # except Exception as error:
+                # count_items = get_objects_count_exception()
+                # print(error)
 
             # Multiple People Funtionality
             people_detection_frames = people_detection(count_items, people_detection_frames, frame_count, fps, report, debug=DEBUG)
