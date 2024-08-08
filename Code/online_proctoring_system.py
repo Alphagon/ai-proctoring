@@ -53,7 +53,6 @@ video_height = int(video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
 aspect_ratio = video_width / video_height
 
 
-process_this_frame = True
 people_detection_frames = 0
 banned_object_frames = 0
 face_verification_frames = 0
@@ -72,14 +71,11 @@ print(fps)
 #################################################### MAIN #####################################################
 
 while True:
-    # Frame-Skipping to save time
-    process_this_frame = not process_this_frame 
-
     # Grabbing a frame of video
     ret, frame = video_capture.read()
     frame_count += 1
 
-    if frame_count < 3050: continue
+    # if frame_count < 3050: continue
 
     if not ret:
         print("End of video")
@@ -93,8 +89,9 @@ while True:
     # Resize frame to 1/5th for faster processing
     small_frame = cv2.resize(frame, (0, 0), fx=0.2, fy=0.2)
 
-    # Functionalities
-    if process_this_frame:
+    # Frame-Skipping to save time
+    if frame_count % 5 == 0:
+        # Functionalities
             print(frame_count)
         # try:
             ##### Object Detection #####
@@ -112,7 +109,7 @@ while True:
             banned_object_frames = banned_object_detection(count_items, banned_object_frames, frame_count, fps, report, debug=DEBUG)
 
             # Checking Face detection/Face Verification/Headpose/Eye tracker details if and only if there is one person
-            if(count_items['person'] == 1):
+            if(count_items['person'] == 0):
                 #### Face Detection using caffe model of OpenCV's DNN module ####
                 # Detecting Faces
                 faces = find_faces(small_frame, face_model)

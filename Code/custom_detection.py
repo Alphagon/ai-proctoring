@@ -33,7 +33,7 @@ def get_objects_count(frame):
     for i in range(len(fclasses)):
         if(fclasses[i] in TO_DETECT):
             temp.append(fclasses[i])
-    # Conter
+    # Counter
     return Counter(temp)
 
 def get_objects_count_exception():

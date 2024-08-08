@@ -9,8 +9,8 @@ from collections import Counter
 lbl_file        = 'models/yolov3.txt'
 classes         = open(lbl_file).read().strip().split("\n")
 
-yoloconfig      = 'models/yolov3.cfg'
-yoloweights     = 'models/yolov3.weights'
+yoloconfig      = 'models/yolov4-tiny-3l.cfg'
+yoloweights     = 'models/yolov4-tiny.conv'
 net             = cv2.dnn.readNet(yoloweights,yoloconfig)
 
 ############################################# YOLO Detection #####################################################
