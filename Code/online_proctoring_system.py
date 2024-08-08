@@ -1,23 +1,23 @@
 ################################################ Import Libraries  ##########################################
-import cv2
-import sys
 import os
+import sys
+import cv2
+import dlib
 import matplotlib
 import numpy as np
-from collections import Counter
-import face_recognition
-import dlib
 from math import hypot
+import face_recognition
+from collections import Counter
 
-from object_detection import yoloV3Detect
-from landmark_models import *
-from face_spoofing import *
-from headpose_estimation import *
+# from object_detection import yoloV3Detect
+# from landmark_models import *
+# from face_spoofing import *
+from headpose_estimation import load_hp_model
 from face_detection import get_face_detector, find_faces
-from custom_detection import (get_objects_count, get_objects_count_exception,
-                              people_detection, banned_object_detection, face_detection_online, 
-                              comparing_faces, face_verification, get_facial_landmarks, 
-                              head_pose_detection, eye_tracker)
+from custom_detection import get_objects_count, get_objects_count_exception, people_detection, \
+                              banned_object_detection, face_detection_online, \
+                              comparing_faces, face_verification, get_facial_landmarks, \
+                              head_pose_detection, eye_tracker
 ################################################ Setup  ######################################################
 
 # Attendee Face Encodings
@@ -37,7 +37,7 @@ for image in l:
 h_model = load_hp_model('models/Headpose_customARC_ZoomShiftNoise.hdf5')
 
 # Face Detection Model
-face_model = get_face_detector()
+face_model = get_face_detector(modelFile='models/res10_300x300_ssd_iter_140000.caffemodel', configFile='models/deploy.prototxt')
 
 # Face Landmarks Model
 predictor = dlib.shape_predictor("models/shape_predictor_68_face_landmarks.dat")
@@ -67,6 +67,8 @@ DEBUG = True
 output_width = 720
 output_height = int(output_width / aspect_ratio)
 
+print(fps)
+
 #################################################### MAIN #####################################################
 
 while True:
@@ -91,7 +93,7 @@ while True:
 
     # Functionalities
     if process_this_frame:
-        try:
+        # try:
             ##### Object Detection #####
             try:
                 count_items = get_objects_count(small_frame)
@@ -101,10 +103,10 @@ while True:
                 print(e)
 
             # Multiple People Funtionality
-            people_detection_frames = people_detection(count_items, people_detection_frames, report, debug=DEBUG)
+            people_detection_frames = people_detection(count_items, people_detection_frames, frame_count, fps, report, debug=DEBUG)
 
             # Banned Object Detection Funtionality
-            banned_object_frames = banned_object_detection(count_items, banned_object_frames, report, debug=DEBUG)
+            banned_object_frames = banned_object_detection(count_items, banned_object_frames, frame_count, fps, report, debug=DEBUG)
 
             # Checking Face detection/Face Verification/Headpose/Eye tracker details if and only if there is one person
             if(count_items['person'] == 1):
@@ -115,7 +117,7 @@ while True:
                 if len(faces) > 0:
                     face = faces[0]
                 else:
-                    face_detection_frames = face_detection_online(faces, face_detection_frames, report, debug=DEBUG)
+                    face_detection_frames = face_detection_online(faces, face_detection_frames, frame_count, fps, report, debug=DEBUG)
                     horizontalAppendedImg = np.hstack((frame3,report))
                     cv2.imshow("Proctoring_Window", horizontalAppendedImg)
                     continue
@@ -131,31 +133,32 @@ while True:
                     flag = False
                 
                 # Face Verification Functionality
-                face_verification_frames = face_verification(name, face_verification_frames, report, debug=DEBUG)
+                face_verification_frames = face_verification(name, face_verification_frames, frame_count, fps, report, debug=DEBUG)
 
                 # Get Facial Landmarks
                 facial_landmarks = get_facial_landmarks(predictor, face, frame)
 
                 #### Headpose Functionality####
                 headpose_detection_frames, frame3, headpose_condition = head_pose_detection(h_model, frame2, frame3, face, 
-                                                                                            headpose_detection_frames, report, debug=DEBUG)
+                                                                                            headpose_detection_frames, frame_count, 
+                                                                                            fps, report, debug=DEBUG)
 
                 ##### Eye Tracking Functionality#####
-                eye_tracking_frames = eye_tracker(frame2, facial_landmarks, eye_tracking_frames, headpose_condition, report, debug=DEBUG)
+                eye_tracking_frames = eye_tracker(frame2, facial_landmarks, eye_tracking_frames, headpose_condition, frame_count, fps, report, debug=DEBUG)
             else:
                 flag = True
 
             horizontalAppendedImg = np.hstack((frame3,report))
             cv2.imshow("Proctoring_Window", horizontalAppendedImg)
 
-        except Exception as e:
-            print(e) 
-            flag = True
-            report = np.zeros((frame3.shape[0],frame3.shape[1], 3), np.uint8)
+        # except Exception as e:
+        #     print(e) 
+        #     flag = True
+        #     report = np.zeros((frame3.shape[0],frame3.shape[1], 3), np.uint8)
 
-            #final display frame
-            horizontalAppendedImg = np.hstack((frame3,report))
-            cv2.imshow("Proctoring_Window", horizontalAppendedImg)
+        #     #final display frame
+        #     horizontalAppendedImg = np.hstack((frame3,report))
+        #     cv2.imshow("Proctoring_Window", horizontalAppendedImg)
             
 
     # Display the resulting image

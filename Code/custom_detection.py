@@ -1,7 +1,7 @@
 import cv2
 import dlib
 import numpy as np
-from misc import alert
+from misc import alert, log_alert
 import face_recognition
 from collections import Counter
 from object_detection import yoloV3Detect
@@ -10,7 +10,7 @@ from headpose_estimation import headpose_inference, displayHeadpose
 
 TO_DETECT = ['person', 'laptop', 'cell phone', 'book', 'tv']
 FONT = cv2.FONT_HERSHEY_PLAIN
-ALERT_THRESHOLD=10
+ALERT_THRESHOLD = 100 #No of frames
 Y_POSITION_1 = 20
 Y_POSITION_2 = 60
 ALERT_POSITION = (120, 190)
@@ -32,9 +32,9 @@ def get_objects_count_exception():
 
     return count_items
 
-def people_detection(count_items, no_of_frames, report, debug=False):
+def people_detection(count_items, no_of_frames, frame_count, fps, report, debug=False):
     condition = (count_items['person'] != 1)
-    no_of_frames = alert(condition, no_of_frames)
+    no_of_frames = alert(condition, no_of_frames, frame_count, fps, ALERT_THRESHOLD)
 
     if debug:
         cv2.putText(report, f"Number of people detected: {str(count_items['person'])}", (1, Y_POSITION_1), FONT, 1.1, (0, 255, 0), 2)
@@ -45,12 +45,12 @@ def people_detection(count_items, no_of_frames, report, debug=False):
 
     return no_of_frames
 
-def banned_object_detection(count_items, no_of_frames, report, debug=False):
+def banned_object_detection(count_items, no_of_frames, frame_count, fps, report, debug=False):
     condition = (count_items['laptop']>=1 or 
                  count_items['cell phone']>=1 or 
                  count_items['book']>=1 or 
                  count_items['tv']>=1)
-    no_of_frames = alert(condition, no_of_frames)
+    no_of_frames = alert(condition, no_of_frames, frame_count, fps, ALERT_THRESHOLD)
 
     if debug:
         cv2.putText(report, f"Banned objects detected: {str(condition)}", (1, Y_POSITION_1+20), FONT, 1.1, (0, 255, 0), 2)
@@ -61,9 +61,9 @@ def banned_object_detection(count_items, no_of_frames, report, debug=False):
 
     return no_of_frames
 
-def face_detection_online(faces, no_of_frames, report, debug=False):
+def face_detection_online(faces, no_of_frames, report, frame_count, fps, debug=False):
     condition = (len(faces) < 1)
-    no_of_frames = alert(condition, no_of_frames)
+    no_of_frames = alert(condition, no_of_frames, frame_count, fps, ALERT_THRESHOLD)
 
     if debug:
         # Display # For debugging
@@ -98,9 +98,9 @@ def comparing_faces(frame, face, attendee_name, attendee_face_encodings):
         name = "Unknown"
     return name
 
-def face_verification(name, no_of_frames, report, debug=False):
+def face_verification(name, no_of_frames, report, frame_count, fps, debug=False):
     condition = (name=="Unknown")
-    no_of_frames = alert(condition, no_of_frames)
+    no_of_frames = alert(condition, no_of_frames, frame_count, fps, ALERT_THRESHOLD)
 
     if debug:
         # Display # For debugging
@@ -120,7 +120,7 @@ def get_facial_landmarks(predictor, face, frame):
     facial_landmarks = predictor(gray, face_dlib)
     return facial_landmarks
 
-def head_pose_detection(h_model, frame, display_frame, face, no_of_frames, report, debug=False):
+def head_pose_detection(h_model, frame, display_frame, face, no_of_frames,  frame_count, fps,eport, debug=False):
     oAnglesNp, _ = headpose_inference(h_model, frame, face)
 
     condition = (round(oAnglesNp[0],1) not in [0.0,-1.0,-1.1,-1.2,-1.3,-1.4,-1.5,-1.6,-1.7] and 
@@ -144,13 +144,13 @@ def head_pose_detection(h_model, frame, display_frame, face, no_of_frames, repor
         
     return no_of_frames, display_frame, condition
 
-def eye_tracker(frame, facial_landmarks, no_of_frames, headpose_condition, report, debug=False):
+def eye_tracker(frame, facial_landmarks, no_of_frames, headpose_condition, frame_count, fps, report, debug=False):
     gaze_ratio1_left_eye, _ = get_gaze_ratio([36, 37, 38, 39, 40, 41], frame, facial_landmarks)
     gaze_ratio1_right_eye, _ = get_gaze_ratio([42, 43, 44, 45, 46, 47], frame, facial_landmarks)
     gaze_ratio1 = (gaze_ratio1_right_eye + gaze_ratio1_left_eye) / 2
 
     condition = (gaze_ratio1 <= 0.35 or gaze_ratio1>=4 or headpose_condition==True)
-    no_of_frames = alert(condition, no_of_frames)
+    no_of_frames = alert(condition, no_of_frames, frame_count, fps, ALERT_THRESHOLD)
 
     if debug:
         if(condition):
