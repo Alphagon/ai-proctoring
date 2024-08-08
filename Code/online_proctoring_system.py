@@ -88,8 +88,8 @@ while True:
     frame3 = frame.copy()
     report = np.zeros((frame3.shape[0],frame3.shape[1], 3), np.uint8)
   
-    # Resize frame to 1/4th for faster processing
-    small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
+    # Resize frame to 1/5th for faster processing
+    small_frame = cv2.resize(frame, (0, 0), fx=0.2, fy=0.2)
 
     # Functionalities
     if process_this_frame:
@@ -97,10 +97,10 @@ while True:
             ##### Object Detection #####
             try:
                 count_items = get_objects_count(small_frame)
-                print(f'{count_items}')
-            except Exception as e:
+                # print(f'{count_items}')
+            except Exception as error:
                 count_items = get_objects_count_exception()
-                print(e)
+                print(error)
 
             # Multiple People Funtionality
             people_detection_frames = people_detection(count_items, people_detection_frames, frame_count, fps, report, debug=DEBUG)
@@ -125,7 +125,7 @@ while True:
                 # Display Detected Face
                 if DEBUG:
                     (left, top,right,bottom) = face
-                    cv2.rectangle(frame3, (left*4, top*4), (right*4, bottom*4), (0, 0, 255), 2)
+                    cv2.rectangle(frame3, (left*5, top*5), (right*5, bottom*5), (0, 0, 255), 2)
 
                 if(flag==True):
                     #### face verification using face_recognition library ####
