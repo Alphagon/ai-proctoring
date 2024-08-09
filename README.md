@@ -1,4 +1,4 @@
-## Setting up the procotring
+## Setting up the proctoring
 
 First create a new conda virtual environment - `conda create -n ai-proctor python==3.7.0 -y`
 
