@@ -21,7 +21,7 @@ async def process_video(video_path: str):
     # Run the processing script (you can run it as a subprocess)
     try:
         # Change the following command to point to your Python environment and script
-        command = ["python", "online_proctoring_system.py", "--video_path", video_path]
+        command = ["python", "offline_proctoring_system.py", "--video_path", video_path]
         subprocess.run(command, check=True)
     except subprocess.CalledProcessError as e:
         raise HTTPException(status_code=500, detail=str(e))
