@@ -6,7 +6,7 @@ Activate the created virtual environment - `conda activate ai-proctor`
 
 Install the dlib library from conda - `conda install -c conda-froge dlib -y`
 
-Next go to the requirements folder install them
+Next pip install the requirements
 ```
 pip install --no-cache-dir -r requirements/core.txt
 pip install --no-cache-dir -r requirements/dev.txt
