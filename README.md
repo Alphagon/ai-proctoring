@@ -1,6 +1,6 @@
 ## Setting up the procotring
 
-First create a new conda virtual environment - `conda create -n ai-proctor python==3.7.0`
+First create a new conda virtual environment - `conda create -n ai-proctor python==3.7.0 -y`
 
 Activate the created virtual environment - `conda activate ai-proctor`
 
