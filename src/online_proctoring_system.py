@@ -67,7 +67,7 @@ def main(video_path):
     DEBUG = False
 
     # Desired output window size
-    output_width = 620
+    output_width = 320
     output_height = int(output_width / aspect_ratio)
 
     print(frame_count)
