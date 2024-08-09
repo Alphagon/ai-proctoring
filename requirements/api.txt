@@ -1,0 +1,5 @@
+joblib
+urllib3
+fastapi
+uvicorn
+typing_extensions

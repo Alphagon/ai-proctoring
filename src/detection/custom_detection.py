@@ -3,20 +3,19 @@ import dlib
 import logging
 import numpy as np
 from math import ceil
-from misc import alert
+from .misc import alert
 import face_recognition
 from datetime import datetime
 from collections import Counter
-# from object_detection import yoloV3Detect
-from .object_detection_new import yoloV8Detect
+
 from .landmark_models import get_gaze_ratio
+from .object_detection_new import yoloV8Detect
 from .headpose_estimation import headpose_inference, displayHeadpose
 
-# TO_DETECT = ['person', 'laptop', 'cell phone', 'book', 'tv']
 TO_DETECT = ['person', 'laptop', 'remote', 'cell phone', 'book', 'tv']
 
 FONT = cv2.FONT_HERSHEY_PLAIN
-ALERT_THRESHOLD = 50 #No of frames
+ALERT_THRESHOLD = 50
 Y_POSITION_1 = 20
 Y_POSITION_2 = 60
 ALERT_POSITION = (120, 190)
@@ -30,14 +29,12 @@ def log_alert(frame_count, fps):
 
 
 def get_objects_count(frame):
-    # _, fclasses = yoloV3Detect(frame)
     fclasses = yoloV8Detect(frame)
 
     temp = []
     for i in range(len(fclasses)):
         if(fclasses[i] in TO_DETECT):
             temp.append(fclasses[i])
-    # Counter
     return Counter(temp)
 
 def get_objects_count_exception():
@@ -95,10 +92,8 @@ def face_detection_online(faces, no_of_frames, frame_count, fps, report, debug=F
         no_of_frames = 0
 
     if debug:
-        # Display # For debugging
         cv2.putText(report, f"Number of face detected: {str(len(faces))}", (1, Y_POSITION_2), FONT, 1.1, (0, 255, 0), 2)
 
-        # Alert# For debugging
         if(no_of_frames > ALERT_THRESHOLD):
             cv2.putText(report, f"Number of face detected: {str(len(faces))}", (1, Y_POSITION_2), FONT, 1.1, (0, 0, 255), 2)
             cv2.putText(report, "ALERT", ALERT_POSITION, FONT, 4, (0, 0, 255), 2)        
@@ -107,7 +102,6 @@ def face_detection_online(faces, no_of_frames, frame_count, fps, report, debug=F
 
 def comparing_faces(frame, face, attendee_name, attendee_face_encodings):
     (left, top,right,bottom) = face
-    # modifying order
     face_locations = [[top, right, bottom, left]]
 
     # Convert BGR image to RGB image
@@ -137,10 +131,8 @@ def face_verification(name, no_of_frames, frame_count, fps, report, debug=True):
         no_of_frames = 0
 
     if debug:
-        # Display # For debugging
         cv2.putText(report, f"Face Recognized: {str(name)}", (1, Y_POSITION_2+20), FONT, 1.1, (0, 255, 0), 2)
 
-        # Alert
         if(no_of_frames > ALERT_THRESHOLD):
             cv2.putText(report, f"Face Recognized: {str(name)}", (1, Y_POSITION_2+20), FONT, 1.1, (0, 0, 255), 2)
             cv2.putText(report, "ALERT", ALERT_POSITION, FONT, 4, (0, 0, 255), 2)
@@ -167,7 +159,6 @@ def head_pose_detection(h_model, frame, display_frame, face, no_of_frames,  fram
         no_of_frames = 0
 
     if debug:
-        # Display (head angle)
         display_frame = displayHeadpose(display_frame, oAnglesNp, oOffset = 0)
 
         if(condition):
@@ -175,7 +166,6 @@ def head_pose_detection(h_model, frame, display_frame, face, no_of_frames,  fram
         else:
             cv2.putText(report, "Head Pose: Looking at the screen", (1, Y_POSITION_2+40), FONT, 1.1, (0, 255, 0), 2)
 
-        # Alert
         if(no_of_frames > ALERT_THRESHOLD):
             cv2.putText(report, "Head Pose: Looking away from the screen", (1, Y_POSITION_2+40), FONT, 1.1, (0, 0, 255), 2)
             cv2.putText(report, "ALERT", ALERT_POSITION, FONT, 4, (0, 0, 255), 2)
@@ -201,7 +191,6 @@ def eye_tracker(frame, facial_landmarks, no_of_frames, headpose_condition, frame
         else:
             cv2.putText(report, "Eye Tracking: Looking at screen", (1, Y_POSITION_2+60), FONT, 1.1, (0, 255, 0), 2)
 
-        # Alert
         if(no_of_frames > ALERT_THRESHOLD):
             cv2.putText(report, "Eye Tracking: Looking away from screen", (1, Y_POSITION_2+60), FONT, 1.1, (0, 0, 255), 2)
             cv2.putText(report, "ALERT", ALERT_POSITION, FONT, 4, (0, 0, 255), 2)
