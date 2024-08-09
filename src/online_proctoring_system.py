@@ -1,33 +1,25 @@
-################################################ Import Libraries  ##########################################
 import os
 import sys
 import cv2
 import dlib
+import argparse
+
 import matplotlib
 import numpy as np
 from math import hypot
-import face_recognition
 from collections import Counter
-import argparse  # Import argparse for command-line argument parsing
 
+import face_recognition
+from detection.misc import parse_video_path
 from detection.headpose_estimation import load_hp_model
 from detection.face_detection import get_face_detector, find_faces
-from detection.custom_detection import (
-    get_objects_count,
-    get_objects_count_exception,
-    people_detection,
-    banned_object_detection,
-    face_detection_online,
-    comparing_faces,
-    face_verification,
-    get_facial_landmarks,
-    head_pose_detection,
-    eye_tracker,
-)
+from detection.custom_detection import (get_objects_count, get_objects_count_exception, people_detection, banned_object_detection,
+                                        face_detection_online, comparing_faces, face_verification, get_facial_landmarks, head_pose_detection,
+                                        eye_tracker)
 
 ################################################ Setup  ######################################################
 
-def main(video_path):
+def main(video_path, debug=False):
     # Attendee Face Encodings
     l = os.listdir('attendee_db')
     known_face_encodings = []
@@ -64,10 +56,13 @@ def main(video_path):
     eye_tracking_frames = 0
     face_detection_frames = 0
     flag = True
-    DEBUG = False
+    DEBUG = debug
 
     # Desired output window size
-    output_width = 320
+    if DEBUG:
+        output_width = 620
+    else:
+        output_width = 310
     output_height = int(output_width / aspect_ratio)
 
     print(frame_count)
@@ -92,7 +87,7 @@ def main(video_path):
         small_frame = cv2.resize(frame, (0, 0), fx=0.2, fy=0.2)
 
         # Frame-Skipping to save time
-        if frame_count % 5 == 0:
+        if frame_count % 10 == 0:
             # Functionalities
             print(frame_count)
             try:
@@ -177,7 +172,8 @@ def main(video_path):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process a video for proctoring.")
-    parser.add_argument("--video_path", type=str, help="Path to the video file")
+    parser.add_argument("--video_path", type=parse_video_path, help="Path to the video file. Example: '/path/to/video.mp4' or you can use 0 for live")
+    parser.add_argument("--debug", default=False, type=bool, help="Set to True to enable debug mode (e.g., display output). Default is False.")
     args = parser.parse_args()
     
     main(args.video_path)

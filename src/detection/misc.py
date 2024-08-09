@@ -64,3 +64,11 @@ class VideoStream:
             "height": self.height,
             "aspect_ratio": self.aspect_ratio
         }
+
+def parse_video_path(value):
+    try:
+        # Try to convert the value to an integer
+        return int(value)
+    except ValueError:
+        # If conversion fails, return the value as a string
+        return value
