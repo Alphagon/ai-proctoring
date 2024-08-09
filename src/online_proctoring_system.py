@@ -9,9 +9,9 @@ from math import hypot
 import face_recognition
 from collections import Counter
 
-from headpose_estimation import load_hp_model
-from face_detection import get_face_detector, find_faces
-from custom_detection import get_objects_count, get_objects_count_exception, people_detection, banned_object_detection, face_detection_online, \
+from detection.headpose_estimation import load_hp_model
+from detection.face_detection import get_face_detector, find_faces
+from detection.custom_detection import get_objects_count, get_objects_count_exception, people_detection, banned_object_detection, face_detection_online, \
                               comparing_faces, face_verification, get_facial_landmarks, head_pose_detection, eye_tracker
 ################################################ Setup  ######################################################
 
@@ -38,7 +38,8 @@ face_model = get_face_detector(modelFile='models/res10_300x300_ssd_iter_140000.c
 predictor = dlib.shape_predictor("models/shape_predictor_68_face_landmarks.dat")
 
 # Others
-video_path = '/home/yravi/Videos/Webcam/2024-08-06-125132.webm'
+# video_path = '/home/yravi/Videos/Webcam/2024-08-06-125132.webm'
+video_path = '/home/yravi/test_2.mp4'
 video_capture = cv2.VideoCapture(video_path)
 # video_capture = cv2.VideoCapture(0)
 fps = video_capture.get(cv2.CAP_PROP_FPS)

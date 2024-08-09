@@ -1,5 +1,6 @@
-Code/models/shape_predictor_68_face_landmarks.dat
-Code/models/yolov3.weights
-Code/__pycache__
-Code/attendee_db/sumanth.jpg
-Code/proctoring_alerts.log
+src/models/shape_predictor_68_face_landmarks.dat
+src/models/yolov3.weights
+src/__pycache__/
+src/detection/__pycache__/
+sumanth.jpg
+src/proctoring_alerts.log

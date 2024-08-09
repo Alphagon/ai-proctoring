@@ -8,9 +8,9 @@ import face_recognition
 from datetime import datetime
 from collections import Counter
 # from object_detection import yoloV3Detect
-from object_detection_new import yoloV8Detect
-from landmark_models import get_gaze_ratio
-from headpose_estimation import headpose_inference, displayHeadpose
+from .object_detection_new import yoloV8Detect
+from .landmark_models import get_gaze_ratio
+from .headpose_estimation import headpose_inference, displayHeadpose
 
 # TO_DETECT = ['person', 'laptop', 'cell phone', 'book', 'tv']
 TO_DETECT = ['person', 'laptop', 'remote', 'cell phone', 'book', 'tv']
