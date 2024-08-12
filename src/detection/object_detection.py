@@ -1,74 +1,136 @@
-import cv2
-import sys
-import os
-import matplotlib
+import argparse
+
+import cv2.dnn
 import numpy as np
-from collections import Counter
 
-############################################ Setup YOLO v3 ######################################################
-lbl_file        = 'models/yolov3.txt'
-classes         = open(lbl_file).read().strip().split("\n")
+# from ultralytics.utils import ASSETS, yaml_load
+# from ultralytics.utils.checks import check_yaml
 
-yoloconfig      = 'models/yolov3.cfg'
-yoloweights     = 'models/yolov3.weights'
-net             = cv2.dnn.readNet(yoloweights,yoloconfig)
+############################################ Setup YOLO ######################################################
+
+lbl_file = 'models/yolov8.txt'
+CLASSES = open(lbl_file).read().strip().split("\n")
+
+yolov8n_onnx_weights = "models/yolov8.onnx"
+
+# Load the ONNX model
+model: cv2.dnn.Net = cv2.dnn.readNetFromONNX(yolov8n_onnx_weights)
+
 
 ############################################# YOLO Detection #####################################################
 
-def yoloV3Detect(img,scFactor=1/255,nrMean=(0,0,0),RBSwap=True,scoreThres=0.7,nmsThres=0.4):
+def yoloV8Detect(original_image):
+    """
+    Main function to load ONNX model, perform inference, draw bounding boxes, and display the output image.
 
-  ########################## Create blob #########################
-  blob = cv2.dnn.blobFromImage(image=img, 
-                              scalefactor=scFactor, 
-                              size=(416, 416), 
-                              mean=nrMean, 
-                              swapRB=RBSwap, 
-                              crop=False)
-  
-  ########################## Prediction ############################
-  def getOutputLayers(net): 
-    layers = net.getLayerNames() 
-    outLayers = [layers[i[0] - 1] for i in net.getUnconnectedOutLayers()] 
-    return outLayers
+    Args:
+        onnx_model (str): Path to the ONNX model.
+        input_image (str): Path to the input image.
 
-  net.setInput(blob) 
-  outLyrs = getOutputLayers(net) 
-  preds = net.forward(outLyrs)
+    Returns:
+        list: List of dictionaries containing detection information such as class_id, class_name, confidence, etc.
+    """
 
-  ############### Extract information from the output ###############
-  imgHeight = img.shape[0]
-  imgWidth = img.shape[1]
+    # Read the input image
+    # original_image: np.ndarray = cv2.imread(input_image)
+    [height, width, _] = original_image.shape
 
-  classId = [] 
-  confidences = [] 
-  boxes = []
+    # Prepare a square image for inference
+    length = max((height, width))
+    image = np.zeros((length, length, 3), np.uint8)
+    image[0:height, 0:width] = original_image
 
-  for scale in preds: 
-    for pred in scale: 
-      scores = pred[5:] 
-      clss = np.argmax(scores) 
-      confidence = scores[clss]
+    # Calculate scale factor
+    scale = length / 640
 
-      if confidence > scoreThres: 
-        xc = int(pred[0]*imgWidth) 
-        yc = int(pred[1]*imgHeight) 
-        w = int(pred[2]*imgWidth) 
-        h = int(pred[3]*imgHeight) 
-        x = xc - w/2
-        y = yc - h/2
-        
-        classId.append(clss) 
-        confidences.append(float(confidence)) 
-        boxes.append([x, y, w, h])
-  
-  ############### Non-maximal suppresion (NMS) #####################
-  selected = cv2.dnn.NMSBoxes(bboxes=boxes, 
-                              scores=confidences, 
-                              score_threshold=scoreThres, 
-                              nms_threshold=nmsThres)
-  if len(selected) == 0:
-    return [], []
+    # Preprocess the image and prepare blob for model
+    blob = cv2.dnn.blobFromImage(image, scalefactor=1 / 255, size=(640, 640), swapRB=True)
+    model.setInput(blob)
 
-  fboxes = [boxes[int(j)] for j in selected[:,0]]
-  fclasses = [str(classes[classId[j]]) for j in selected[:,0]] 
-  return [fboxes,fclasses]
+    # Perform inference
+    outputs = model.forward()
+
+    # Prepare output array
+    outputs = np.array([cv2.transpose(outputs[0])])
+    rows = outputs.shape[1]
+
+    boxes = []
+    scores = []
+    class_ids = []
+
+    # Iterate through output to collect bounding boxes, confidence scores, and class IDs
+    for i in range(rows):
+        classes_scores = outputs[0][i][4:]
+        (minScore, maxScore, minClassLoc, (x, maxClassIndex)) = cv2.minMaxLoc(classes_scores)
+        if maxScore >= 0.25:
+            box = [
+                outputs[0][i][0] - (0.5 * outputs[0][i][2]),
+                outputs[0][i][1] - (0.5 * outputs[0][i][3]),
+                outputs[0][i][2],
+                outputs[0][i][3],
+            ]
+            boxes.append(box)
+            scores.append(maxScore)
+            class_ids.append(maxClassIndex)
+
+    # Apply NMS (Non-maximum suppression)
+    result_boxes = cv2.dnn.NMSBoxes(boxes, scores, 0.25, 0.45, 0.5)
+
+    # print(result_boxes)
+    # print(class_ids)
+    if len(result_boxes) == 0:
+        return [], []
+
+    # fboxes = [boxes[int(j)] for j in result_boxes[:,0]]
+    # fclasses = [str(CLASSES[class_ids[j]]) for j in result_boxes[:,0]]
+    fclasses = [str(CLASSES[class_ids[j]]) for j in result_boxes]  
+    return fclasses
+
+    # detections = []
+
+    # # Iterate through NMS results to draw bounding boxes and labels
+    # for i in range(len(result_boxes)):
+    #     index = result_boxes[i]
+    #     box = boxes[index]
+    #     detection = {
+    #         "class_id": class_ids[index],
+    #         "class_name": CLASSES[class_ids[index]],
+    #         "confidence": scores[index],
+    #         "box": box,
+    #         "scale": scale,
+    #     }
+    #     detections.append(detection)
+    #     draw_bounding_box(
+    #         original_image,
+    #         class_ids[index],
+    #         scores[index],
+    #         round(box[0] * scale),
+    #         round(box[1] * scale),
+    #         round((box[0] + box[2]) * scale),
+    #         round((box[1] + box[3]) * scale),
+    #     )
+
+    # # Display the image with bounding boxes
+    # cv2.imshow("image", original_image)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
+
+    # return detections
+
+def draw_bounding_box(img, class_id, confidence, x, y, x_plus_w, y_plus_h):
+    """
+    Draws bounding boxes on the input image based on the provided arguments.
+
+    Args:
+        img (numpy.ndarray): The input image to draw the bounding box on.
+        class_id (int): Class ID of the detected object.
+        confidence (float): Confidence score of the detected object.
+        x (int): X-coordinate of the top-left corner of the bounding box.
+        y (int): Y-coordinate of the top-left corner of the bounding box.
+        x_plus_w (int): X-coordinate of the bottom-right corner of the bounding box.
+        y_plus_h (int): Y-coordinate of the bottom-right corner of the bounding box.
+    """
+    label = f"{CLASSES[class_id]} ({confidence:.2f})"
+    color = colors[class_id]
+    cv2.rectangle(img, (x, y), (x_plus_w, y_plus_h), color, 2)
+    cv2.putText(img, label, (x - 10, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)

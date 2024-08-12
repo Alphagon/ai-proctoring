@@ -9,7 +9,7 @@ from datetime import datetime
 from collections import Counter
 
 from .landmark_models import get_gaze_ratio
-from .object_detection_new import yoloV8Detect
+from .object_detection import yoloV8Detect
 from .headpose_estimation import headpose_inference, displayHeadpose
 
 TO_DETECT = ['person', 'laptop', 'remote', 'cell phone', 'book', 'tv']
@@ -82,7 +82,6 @@ def banned_object_detection(count_items, no_of_frames, frame_count, fps, report,
     return no_of_frames
 
 def face_detection_online(faces, no_of_frames, frame_count, fps, report, debug=False):
-    print(len(faces))
     condition = (len(faces) != 1)
     no_of_frames = alert(condition, no_of_frames)
 

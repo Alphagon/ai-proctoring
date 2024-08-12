@@ -44,6 +44,7 @@ def main(video_path, debug=False):
     # Video Capture
     video_capture = cv2.VideoCapture(video_path)
     fps = video_capture.get(cv2.CAP_PROP_FPS)
+    frames = video_capture.get(cv2.CAP_PROP_FRAME_COUNT) 
     frame_count = 0
     video_width = int(video_capture.get(cv2.CAP_PROP_FRAME_WIDTH))
     video_height = int(video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -65,15 +66,13 @@ def main(video_path, debug=False):
         output_width = 310
     output_height = int(output_width / aspect_ratio)
 
-    print(frame_count)
-
     #################################################### MAIN #####################################################
 
     while True:
         # Grabbing a frame of video
         ret, frame = video_capture.read()
         frame_count += 1
-
+        # if frame_count <= 4000: continue
         if not ret:
             print("End of video")
             break
@@ -164,7 +163,7 @@ def main(video_path, debug=False):
             print("closing window...")
             break
 
-    print(frame_count)
+    # print(frame_count)
 
     # Release handle to the webcam
     video_capture.release()
