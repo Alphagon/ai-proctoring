@@ -3,11 +3,14 @@ import sys
 import cv2
 import dlib
 import argparse
+import glob
 
 import matplotlib
 import numpy as np
 from math import hypot
 from collections import Counter
+
+from s3funcs import list_candidates, check_proctoring_alerts, retrieve_file_paths, download_s3_files, upload_file_to_s3, bucket_name
 
 import face_recognition
 from detection.misc import parse_video_path
@@ -19,18 +22,23 @@ from detection.custom_detection import (get_objects_count, get_objects_count_exc
 
 ################################################ Setup  ######################################################
 
-def main(video_path, debug=False):
+def main(debug=False):
+    # video file extensions
+    video_extensions = ['.mp4', 'webm']
+
     # Attendee Face Encodings
     l = os.listdir('attendee_db')
     known_face_encodings = []
     known_face_names = []
 
-    for image in l:
-        attendee_image = face_recognition.load_image_file('attendee_db/' + image)
-        attendee_face_encoding = face_recognition.face_encodings(attendee_image)[0]
-
-        known_face_encodings.append(attendee_face_encoding)
-        known_face_names.append(image.split('.')[0])
+    for file in l:
+        if any(file.endswith(ext) for ext in video_extensions):
+            video_path = f'attendee_db/{file}'
+        else:
+            attendee_image = face_recognition.load_image_file('attendee_db/' + file)
+            attendee_face_encoding = face_recognition.face_encodings(attendee_image)[0]
+            known_face_encodings.append(attendee_face_encoding)
+            known_face_names.append(file.split('.')[0])
 
     # Headpose Model
     h_model = load_hp_model('models/Headpose_customARC_ZoomShiftNoise.hdf5')
@@ -88,7 +96,7 @@ def main(video_path, debug=False):
         # Frame-Skipping to save time
         if frame_count % 10 == 0:
             # Functionalities
-            print(frame_count)
+            # print(frame_count)
             try:
                 ##### Object Detection #####
                 try:
@@ -171,8 +179,25 @@ def main(video_path, debug=False):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process a video for proctoring.")
-    parser.add_argument("--video_path", type=parse_video_path, help="Path to the video file. Example: '/path/to/video.mp4' or you can use 0 for live")
-    parser.add_argument("--debug", default=False, type=bool, help="Set to True to enable debug mode (e.g., display output). Default is False.")
+    # parser.add_argument("--video_path", type=parse_video_path, help="Path to the video file. Example: '/path/to/video.mp4' or you can use 0 for live")
+    parser.add_argument("--debug", default=False, type=parse_video_path, help="Set to True to enable debug mode (e.g., display output). Default is False.")
     args = parser.parse_args()
     
-    main(args.video_path)
+    candidates = list_candidates(bucket_name)
+    for candidate in candidates:
+        if not check_proctoring_alerts(bucket_name, candidate):
+            videos, images = retrieve_file_paths(bucket_name, candidate)
+            for video, image in zip(videos, images):
+                download_s3_files(bucket_name, video)
+                download_s3_files(bucket_name, image)
+                main()
+                upload_file_to_s3('proctoring_alerts.log', bucket_name, candidate)
+                try:
+                    files = glob.glob('attendee_db/*')
+                    for file in files:
+                        os.remove(file)
+                    os.remove('proctoring_alerts.log')
+                except OSError:
+                    pass
+        else:
+            print(f"{candidate} is already proctored")

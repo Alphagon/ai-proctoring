@@ -1,38 +1,38 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.responses import HTMLResponse
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.interval import IntervalTrigger
 import subprocess
 import os
 
-app = FastAPI()
+app = FastAPI(title="AI-Proctoring - Automatic Run",
+              version="0.1")
 
-# Endpoint to process the video
-@app.post("/process-video/")
-async def process_video(video_path: str, debug: str):
-    if not os.path.exists(video_path):
-        raise HTTPException(status_code=404, detail="Video file not found")
+scheduler = BackgroundScheduler()
+scheduler.start()
 
-    # Run the face detection and logging script
-    log_file_path = "proctoring_alerts.log"
-    
-    # Ensuring the log file is cleared before running the script
-    if os.path.exists(log_file_path):
-        os.remove(log_file_path)
-
-    # Run the processing script
+def process_video_task(debug: bool):
+    command = ["python", "offline_proctoring_system.py", "--debug", str(debug)]
     try:
-        command = ["python", "offline_proctoring_system.py", "--video_path", video_path, "--debug", debug]
+        print("command running")
         subprocess.run(command, check=True)
-        pass
+        print("ended")
     except subprocess.CalledProcessError as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-    # Read the log file after processing
-    if os.path.exists(log_file_path):
-        with open(log_file_path, 'r') as log_file:
-            log_content = log_file.read()
-    else:
-        log_content = "Log file not found."
+@app.on_event("startup")
+async def process_video(debug: bool = False, background_tasks: BackgroundTasks = None):
+    scheduler.add_job(
+        process_video_task,
+        trigger=IntervalTrigger(minutes=5),  #"hours=1" for hourly runs
+        args=[debug],
+        id="process_video_job",
+        replace_existing=True
+    )
+    return HTMLResponse(content="Processing started and scheduled.", status_code=200)
 
-    return HTMLResponse(content=f"{log_content}", status_code=200)
+@app.on_event("shutdown")
+def shutdown_event():
+    scheduler.shutdown()
 
-# Run the application with: uvicorn your_fastapi_file:app --reload
+# uvicorn src.main:app --reload

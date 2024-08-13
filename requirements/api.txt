@@ -3,3 +3,4 @@ urllib3
 fastapi
 uvicorn
 typing_extensions
+boto3
