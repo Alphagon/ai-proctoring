@@ -14,6 +14,3 @@ pip install --no-cache-dir -r requirements/api.txt
 ```
 Run the following 
 `python online_proctoring_system --video_path "video_path" --debug`
-
-
-For more info refer to the following - https://github.com/AparGarg99/Intelligent-Online-Exam-Proctoring-System
