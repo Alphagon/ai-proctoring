@@ -12,10 +12,10 @@ scheduler = BackgroundScheduler()
 scheduler.start()
 
 def process_video_task(debug: bool):
-    command = ["python", "offline_proctoring_system.py", "--debug", str(debug)]
+    command = ["python",  "src/offline_proctoring_system.py", "--debug", str(debug)]
     try:
         print("command running")
-        subprocess.run(command, check=True)
+        subprocess.run(command, check = True)
         print("ended")
     except subprocess.CalledProcessError as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -24,7 +24,9 @@ def process_video_task(debug: bool):
 async def process_video(debug: bool = False, background_tasks: BackgroundTasks = None):
     scheduler.add_job(
         process_video_task,
-        trigger=IntervalTrigger(minutes=5),  #"hours=1" for hourly runs
+        trigger=IntervalTrigger(minutes=1),  #"hours=1" for hourly runs
+        coalesce=True, 
+        max_instances=1,
         args=[debug],
         id="process_video_job",
         replace_existing=True

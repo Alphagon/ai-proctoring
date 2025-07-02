@@ -1,28 +1,26 @@
 import os
 import sys
 import cv2
+import sys
+import wget
 import dlib
 import argparse
-import glob
+from datetime import datetime
 
-import matplotlib
 import numpy as np
 from math import hypot
 from collections import Counter
-
-from s3funcs import list_candidates, check_proctoring_alerts, retrieve_file_paths, download_s3_files, upload_file_to_s3, bucket_name
+from db.postgresql import engine, extract_unproctored_record, Session, update_proctored_record
 
 import face_recognition
-from detection.misc import parse_video_path
+from detection.misc import clean_up_directory, download_files, parse_video_path
 from detection.headpose_estimation import load_hp_model
 from detection.face_detection import get_face_detector, find_faces
-from detection.custom_detection import (get_objects_count, get_objects_count_exception, people_detection, banned_object_detection,
-                                        face_detection_online, comparing_faces, face_verification, get_facial_landmarks, head_pose_detection,
-                                        eye_tracker)
+from detection.custom_detection import *
 
 ################################################ Setup  ######################################################
 
-def main(debug=False):
+def offline_proctoring(debug):
     # video file extensions
     video_extensions = ['.mp4', 'webm']
 
@@ -34,6 +32,7 @@ def main(debug=False):
     for file in l:
         if any(file.endswith(ext) for ext in video_extensions):
             video_path = f'attendee_db/{file}'
+            print(video_path)
         else:
             attendee_image = face_recognition.load_image_file('attendee_db/' + file)
             attendee_face_encoding = face_recognition.face_encodings(attendee_image)[0]
@@ -96,7 +95,6 @@ def main(debug=False):
         # Frame-Skipping to save time
         if frame_count % 10 == 0:
             # Functionalities
-            # print(frame_count)
             try:
                 ##### Object Detection #####
                 try:
@@ -106,10 +104,10 @@ def main(debug=False):
                     print(error)
 
                 #### Multiple People Functionality ####
-                people_detection_frames = people_detection(count_items, people_detection_frames, frame_count, fps, report, debug=DEBUG)
+                people_detection_frames, MULTIPLE_PEOPLE = people_detection(count_items, people_detection_frames, frame_count, fps, report, debug=DEBUG)
 
                 #### Banned Object Detection Functionality #### 
-                banned_object_frames = banned_object_detection(count_items, banned_object_frames, frame_count, fps, report, debug=DEBUG)
+                banned_object_frames, BANNED_OBJECTS = banned_object_detection(count_items, banned_object_frames, frame_count, fps, report, debug=DEBUG)
 
                 # Checking Face detection/Face Verification/Headpose/Eye tracker details if and only if there is one person
                 if count_items['person'] > 0:
@@ -120,7 +118,7 @@ def main(debug=False):
                     if len(faces) == 1:
                         face = faces[0]
                     else:
-                        face_detection_frames = face_detection_online(faces, face_detection_frames, frame_count, fps, report, debug=DEBUG)
+                        face_detection_frames = face_detection_offline(faces, face_detection_frames, frame_count, fps, report, debug=DEBUG)
                         if DEBUG:
                             horizontalAppendedImg = np.hstack((frame3, report))
                             cv2.imshow("Proctoring_Window", horizontalAppendedImg)
@@ -137,18 +135,18 @@ def main(debug=False):
                         flag = False
                     
                     #### Face Verification Functionality #### 
-                    face_verification_frames = face_verification(name, face_verification_frames, frame_count, fps, report, debug=DEBUG)
+                    face_verification_frames, FACE_VERIFICATION = face_verification(name, face_verification_frames, frame_count, fps, report, debug=DEBUG)
 
                     # Get Facial Landmarks
                     facial_landmarks = get_facial_landmarks(predictor, face, frame)
 
                     #### Headpose Functionality####
-                    headpose_detection_frames, frame3, headpose_condition = head_pose_detection(
+                    headpose_detection_frames, frame3, headpose_condition, HEADPOSE_DETECTION = head_pose_detection(
                         h_model, frame2, frame3, face, headpose_detection_frames, frame_count, fps, report, debug=DEBUG
                     )
 
                     ##### Eye Tracking Functionality#####
-                    eye_tracking_frames = eye_tracker(frame2, facial_landmarks, eye_tracking_frames, headpose_condition, frame_count, fps, report, debug=DEBUG)
+                    eye_tracking_frames, EYE_TRACKING = eye_tracker(frame2, facial_landmarks, eye_tracking_frames, headpose_condition, frame_count, fps, report, debug=DEBUG)
                 else:
                     flag = True
                 if DEBUG:
@@ -171,33 +169,32 @@ def main(debug=False):
             print("closing window...")
             break
 
-    # print(frame_count)
-
     # Release handle to the webcam
     video_capture.release()
     cv2.destroyAllWindows()
 
+    return [MULTIPLE_PEOPLE, BANNED_OBJECTS, FACE_VERIFICATION, HEADPOSE_DETECTION, EYE_TRACKING]
+
+def process_video_for_proctoring(engine, debug):
+    with Session(engine) as session:
+        candidate = extract_unproctored_record(session)
+        if candidate is None: 
+            print("All candidates are proctored")
+            return
+
+        # print(f"Proctoring {candidate}")
+        video_filename, image_filename = download_files(candidate)
+        updated_info = offline_proctoring(debug)
+        update_proctored_record(session, candidate, updated_info)
+        session.commit()  # Commit after all changes are done
+
+    clean_up_directory(directory="src/attendee_db/")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process a video for proctoring.")
     # parser.add_argument("--video_path", type=parse_video_path, help="Path to the video file. Example: '/path/to/video.mp4' or you can use 0 for live")
-    parser.add_argument("--debug", default=False, type=parse_video_path, help="Set to True to enable debug mode (e.g., display output). Default is False.")
+    parser.add_argument("--debug", default=False, type=parse_video_path, help="Set it to True to enable debug mode (e.g., display output). Default is False.")
     args = parser.parse_args()
-    
-    candidates = list_candidates(bucket_name)
-    for candidate in candidates:
-        if not check_proctoring_alerts(bucket_name, candidate):
-            videos, images = retrieve_file_paths(bucket_name, candidate)
-            for video, image in zip(videos, images):
-                download_s3_files(bucket_name, video)
-                download_s3_files(bucket_name, image)
-                main()
-                upload_file_to_s3('proctoring_alerts.log', bucket_name, candidate)
-                try:
-                    files = glob.glob('attendee_db/*')
-                    for file in files:
-                        os.remove(file)
-                    os.remove('proctoring_alerts.log')
-                except OSError:
-                    pass
-        else:
-            print(f"{candidate} is already proctored")
+    print(args)
+    process_video_for_proctoring(engine, debug=args.debug)

@@ -4,3 +4,7 @@ fastapi
 uvicorn
 typing_extensions
 boto3
+wget
+sqlmodel
+python-dotenv
+psycopg2-binary

@@ -3,3 +3,8 @@ numpy
 opencv-python
 Pillow
 apscheduler
+sqlmodel
+# librosa
+# SpeechRecognition
+# moviepy
+# pydub

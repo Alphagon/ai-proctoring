@@ -8,10 +8,10 @@ import numpy as np
 
 ############################################ Setup YOLO ######################################################
 
-lbl_file = 'models/yolov8.txt'
+lbl_file = 'src/models/yolov8.txt'
 CLASSES = open(lbl_file).read().strip().split("\n")
 
-yolov8n_onnx_weights = "models/yolov8.onnx"
+yolov8n_onnx_weights = "src/models/yolov8.onnx"
 
 # Load the ONNX model
 model: cv2.dnn.Net = cv2.dnn.readNetFromONNX(yolov8n_onnx_weights)

@@ -14,18 +14,19 @@ from .headpose_estimation import headpose_inference, displayHeadpose
 
 TO_DETECT = ['person', 'laptop', 'remote', 'cell phone', 'book', 'tv']
 
+# DEBUGGING Pre-Req
 FONT = cv2.FONT_HERSHEY_PLAIN
-ALERT_THRESHOLD = 50
 Y_POSITION_1 = 20
 Y_POSITION_2 = 60
 ALERT_POSITION = (120, 190)
 
-# Setup logging
-logging.basicConfig(filename='proctoring_alerts.log', level=logging.INFO, format='%(asctime)s %(message)s')
-
-def log_alert(frame_count, fps):
-    current_time = ceil(frame_count / fps)
-    logging.info(f"Detected Irregular Activity at {current_time} seconds")
+# ALERT Pre-Req
+ALERT_THRESHOLD = 30
+MULTIPLE_PEOPLE = 0
+BANNED_OBJECTS = 0
+FACE_VERIFICATION = True
+HEADPOSE_DETECTION = False
+EYE_TRACKING = False
 
 
 def get_objects_count(frame):
@@ -35,6 +36,7 @@ def get_objects_count(frame):
     for i in range(len(fclasses)):
         if(fclasses[i] in TO_DETECT):
             temp.append(fclasses[i])
+
     return Counter(temp)
 
 def get_objects_count_exception():
@@ -45,12 +47,13 @@ def get_objects_count_exception():
     return count_items
 
 def people_detection(count_items, no_of_frames, frame_count, fps, report, debug=False):
+    global MULTIPLE_PEOPLE
+    
     condition = (count_items['person'] != 1)
     no_of_frames = alert(condition, no_of_frames)
 
     if(no_of_frames > ALERT_THRESHOLD):
-        log_alert(frame_count, fps)
-        logging.info(f"People count: {count_items['person']}")
+        MULTIPLE_PEOPLE += 1
         no_of_frames = 0
 
     if debug:
@@ -60,34 +63,34 @@ def people_detection(count_items, no_of_frames, frame_count, fps, report, debug=
             cv2.putText(report, f"Number of people detected: {str(count_items['person'])}", (1, Y_POSITION_1), FONT, 1.1, (0, 0, 255), 2)
             cv2.putText(report, "ALERT", ALERT_POSITION, FONT, 4, (0, 0, 255), 2)
 
-    return no_of_frames
+    return no_of_frames, MULTIPLE_PEOPLE
 
 def banned_object_detection(count_items, no_of_frames, frame_count, fps, report, debug=False):
+    global BANNED_OBJECTS
+
     condition = (count_items['laptop']>=1 or count_items['cell phone']>=1 or 
                  count_items['book']>=1 or count_items['tv']>=1)
     no_of_frames = alert(condition, no_of_frames)
 
-    if(no_of_frames > ALERT_THRESHOLD):
-        log_alert(frame_count, fps)
-        logging.info(f"Banned Object Detected: {count_items}")
-        no_of_frames = 0
+    if(no_of_frames > 30):
+        BANNED_OBJECTS += 1
+        no_of_frames = -100
 
     if debug:
         cv2.putText(report, f"Banned objects detected: {str(condition)}", (1, Y_POSITION_1+20), FONT, 1.1, (0, 255, 0), 2)
 
-        if(no_of_frames > ALERT_THRESHOLD):
+        if(no_of_frames > 30):
             cv2.putText(report, f"Banned objects detected: {str(condition)}", (1, Y_POSITION_1+20), FONT, 1.1, (0, 0, 255), 2)
             cv2.putText(report, "ALERT", ALERT_POSITION, FONT, 4, (0, 0, 255), 2)
 
-    return no_of_frames
+    return no_of_frames, BANNED_OBJECTS
 
-def face_detection_online(faces, no_of_frames, frame_count, fps, report, debug=False):
+def face_detection_offline(faces, no_of_frames, frame_count, fps, report, debug=False):
     condition = (len(faces) != 1)
     no_of_frames = alert(condition, no_of_frames)
 
     if(no_of_frames > ALERT_THRESHOLD):
-        log_alert(frame_count, fps)
-        logging.info(f"More than one Face Detected: {len(faces)}")
+        # log_alert(frame_count, fps)
         no_of_frames = 0
 
     if debug:
@@ -121,22 +124,23 @@ def comparing_faces(frame, face, attendee_name, attendee_face_encodings):
     return name
 
 def face_verification(name, no_of_frames, frame_count, fps, report, debug=True):
+    global FACE_VERIFICATION
+
     condition = (name=="Unknown")
     no_of_frames = alert(condition, no_of_frames)
 
-    if(no_of_frames > ALERT_THRESHOLD):
-        log_alert(frame_count, fps)
-        logging.info(f"Unknown Face detected")
+    if(no_of_frames > 100):
+        FACE_VERIFICATION = False
         no_of_frames = 0
 
     if debug:
         cv2.putText(report, f"Face Recognized: {str(name)}", (1, Y_POSITION_2+20), FONT, 1.1, (0, 255, 0), 2)
 
-        if(no_of_frames > ALERT_THRESHOLD):
+        if(no_of_frames > 100):
             cv2.putText(report, f"Face Recognized: {str(name)}", (1, Y_POSITION_2+20), FONT, 1.1, (0, 0, 255), 2)
             cv2.putText(report, "ALERT", ALERT_POSITION, FONT, 4, (0, 0, 255), 2)
 
-    return no_of_frames
+    return no_of_frames, FACE_VERIFICATION
 
 def get_facial_landmarks(predictor, face, frame):
     left, top, right, bottom = face[0]*4, face[1]*4, face[2]*4, face[3]*4
@@ -146,6 +150,8 @@ def get_facial_landmarks(predictor, face, frame):
     return facial_landmarks
 
 def head_pose_detection(h_model, frame, display_frame, face, no_of_frames,  frame_count, fps, report, debug=False):
+    global HEADPOSE_DETECTION
+
     oAnglesNp, _ = headpose_inference(h_model, frame, face)
     condition = (round(oAnglesNp[0],1) not in [0.0,-1.0,-1.1,-1.2,-1.3,-1.4,-1.5,-1.6,-1.7] and 
                  round(oAnglesNp[1],0) not in [0.0,1.0,2.0,3.0,4.0,5.0])
@@ -153,8 +159,7 @@ def head_pose_detection(h_model, frame, display_frame, face, no_of_frames,  fram
     no_of_frames = alert(condition, no_of_frames)
 
     if(no_of_frames > ALERT_THRESHOLD):
-        log_alert(frame_count, fps)
-        logging.info(f"Headpose: The attendee is looking away from the screen")
+        HEADPOSE_DETECTION = True
         no_of_frames = 0
 
     if debug:
@@ -169,9 +174,11 @@ def head_pose_detection(h_model, frame, display_frame, face, no_of_frames,  fram
             cv2.putText(report, "Head Pose: Looking away from the screen", (1, Y_POSITION_2+40), FONT, 1.1, (0, 0, 255), 2)
             cv2.putText(report, "ALERT", ALERT_POSITION, FONT, 4, (0, 0, 255), 2)
         
-    return no_of_frames, display_frame, condition
+    return no_of_frames, display_frame, condition, HEADPOSE_DETECTION
 
 def eye_tracker(frame, facial_landmarks, no_of_frames, headpose_condition, frame_count, fps, report, debug=False):
+    global EYE_TRACKING
+
     gaze_ratio1_left_eye, _ = get_gaze_ratio([36, 37, 38, 39, 40, 41], frame, facial_landmarks)
     gaze_ratio1_right_eye, _ = get_gaze_ratio([42, 43, 44, 45, 46, 47], frame, facial_landmarks)
     gaze_ratio1 = (gaze_ratio1_right_eye + gaze_ratio1_left_eye) / 2
@@ -180,8 +187,7 @@ def eye_tracker(frame, facial_landmarks, no_of_frames, headpose_condition, frame
     no_of_frames = alert(condition, no_of_frames)
 
     if(no_of_frames > ALERT_THRESHOLD):
-        log_alert(frame_count, fps)
-        logging.info(f"Eye Tracking: The attendee is looking away from the screen")
+        EYE_TRACKING = True
         no_of_frames = 0
 
     if debug:
@@ -194,4 +200,4 @@ def eye_tracker(frame, facial_landmarks, no_of_frames, headpose_condition, frame
             cv2.putText(report, "Eye Tracking: Looking away from screen", (1, Y_POSITION_2+60), FONT, 1.1, (0, 0, 255), 2)
             cv2.putText(report, "ALERT", ALERT_POSITION, FONT, 4, (0, 0, 255), 2)
     
-    return no_of_frames
+    return no_of_frames, EYE_TRACKING
